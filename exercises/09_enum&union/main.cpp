@@ -37,6 +37,9 @@ ColorEnum convert_by_pun(Color c) {
 
     TypePun pun;
     // TODO: 补全类型双关转换
+    //利用两个枚举类对应的int类型数相等的属性来实现类型双关转换
+    int a = static_cast<int>(c);
+    pun.e = static_cast<ColorEnum>(a);
 
     return pun.e;
 }

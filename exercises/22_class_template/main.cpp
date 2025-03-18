@@ -9,6 +9,10 @@ struct Tensor4D {
 
     Tensor4D(unsigned int const shape_[4], T const *data_) {
         unsigned int size = 1;
+        for(int i=0; i<4; i++){
+            shape[i] = shape_[i];
+            size *= shape[i];
+        }
         // TODO: 填入正确的 shape 并计算 size
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
@@ -26,10 +30,53 @@ struct Tensor4D {
     // `others` 长度为 1 但 `this` 长度不为 1 的维度将发生广播计算。
     // 例如，`this` 形状为 `[1, 2, 3, 4]`，`others` 形状为 `[1, 2, 1, 4]`，
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
+    // Tensor4D &operator+=(Tensor4D const &others) {
+    //     // TODO: 实现单向广播的加法
+
+    //     for(int i=3;i>=0;i--){
+    //         if(others.shape[i]!=shape[i]&&others.shape[i]!=1)
+    //             throw std::invalid_argument("Shape mismatch for broadcasting");
+    //         else if(others.shape[i]!=shape[i])
+    //     }
+
+    //     return *this;
+    // }
+
+        // 单向广播加法
     Tensor4D &operator+=(Tensor4D const &others) {
-        // TODO: 实现单向广播的加法
+        // 检查形状是否合法
+        for (int i = 0; i < 4; ++i) {
+            if (shape[i] != others.shape[i] && others.shape[i] != 1) {
+                throw std::invalid_argument("Shape mismatch for broadcasting");
+            }
+        }
+
+        // 计算 strides
+        unsigned int strides[4];
+        for (int i = 3; i >= 0; --i) {
+            strides[i] = (others.shape[i] == 1 ? 0 : (i == 3 ? 1 : std::max(strides[i + 1] * others.shape[i + 1],1U)));
+        }
+
+        // 广播加法
+        unsigned int size = shape[0] * shape[1] * shape[2] * shape[3];
+        for (unsigned int idx = 0; idx < size; ++idx) {
+            unsigned int idx4 = idx % shape[3];
+            unsigned int idx3 = (idx / shape[3]) % shape[2];
+            unsigned int idx2 = (idx / (shape[3] * shape[2])) % shape[1];
+            unsigned int idx1 = idx / (shape[3] * shape[2] * shape[1]);
+
+            unsigned int o_idx =
+                (idx1 % others.shape[0]) * strides[0] +
+                (idx2 % others.shape[1]) * strides[1] +
+                (idx3 % others.shape[2]) * strides[2] +
+                (idx4 % others.shape[3]) * strides[3];
+
+            data[idx] += others.data[o_idx];
+        }
+
         return *this;
     }
+
 };
 
 // ---- 不要修改以下代码 ----
